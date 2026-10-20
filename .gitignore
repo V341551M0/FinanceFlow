@@ -1,0 +1,12 @@
+.env.example
+.github
+.vscode
+target/
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.example
+.env.*
+!.env.example
