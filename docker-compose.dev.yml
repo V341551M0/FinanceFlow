@@ -1,0 +1,21 @@
+services:
+  db:
+    extends:
+      file: docker-compose.yml
+      service: db
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/financeflow
+      DB_USER: financeflow
+      DB_PASSWORD: financeflow
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-override-with-a-256-bit-key-1234567890}
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
