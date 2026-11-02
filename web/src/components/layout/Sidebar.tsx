@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Upload } from 'lucide-react';
 import {
   LayoutDashboard, Wallet, Receipt, Target,
   TrendingUp, PieChart, Settings, CreditCard,
@@ -13,6 +14,7 @@ const items = [
   { to: '/investments', icon: TrendingUp, label: 'Investimentos' },
   { to: '/reports', icon: PieChart, label: 'Relatórios' },
   { to: '/settings', icon: Settings, label: 'Configurações' },
+  { to: '/import', icon: Upload, label: 'Importar' }
 ];
 
 export function Sidebar() {

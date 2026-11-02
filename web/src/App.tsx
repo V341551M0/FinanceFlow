@@ -7,6 +7,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute, PublicOnlyRoute } from '@/components/ProtectedRoute';
 import { useThemeStore } from '@/stores/themeStore';
 import AccountsPage from '@/pages/AccountsPage';
+import TransactionsPage from '@/pages/TransactionsPage';
+import ImportPage from '@/pages/ImportPage';
 
 export default function App() {
   const apply = useThemeStore((s) => s.apply);
@@ -21,6 +23,8 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/import" element={<ImportPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
         </Route>
