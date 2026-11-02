@@ -1,7 +1,5 @@
 package com.financeflow.transaction;
 
-public package com.financeflow.transaction;
-
 import com.financeflow.account.FinancialAccount;
 import com.financeflow.common.BaseEntity;
 import com.financeflow.user.User;
@@ -57,6 +55,4 @@ public class Transaction extends BaseEntity {
     @Column(name = "external_id", length = 120) private String externalId;
 
     @Column(name = "transfer_pair_id") private Long transferPairId;
-} {
-    
 }

@@ -125,4 +125,27 @@ public class TransactionService {
         BigDecimal delta = transactions.sumDeltaForAccount(accountId);
         acc.setCurrentBalance(acc.getInitialBalance().add(delta));
     }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<TransactionResponse> list(
+            Long userId, int page, int size, Long accountId,
+            TransactionType type, java.time.LocalDate from, java.time.LocalDate to, String q) {
+
+        var spec = (org.springframework.data.jpa.domain.Specification<Transaction>) (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(cb.equal(root.get("user").get("id"), userId));
+            if (accountId != null) predicates.add(cb.equal(root.get("account").get("id"), accountId));
+            if (type != null) predicates.add(cb.equal(root.get("type"), type));
+            if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("transactionDate"), from));
+            if (to != null) predicates.add(cb.lessThanOrEqualTo(root.get("transactionDate"), to));
+            if (q != null && !q.isBlank())
+                predicates.add(cb.like(cb.lower(root.get("description")), "%" + q.toLowerCase() + "%"));
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        var pageable = org.springframework.data.domain.PageRequest.of(page, Math.min(size, 100),
+                org.springframework.data.domain.Sort.by("transactionDate").descending()
+                        .and(org.springframework.data.domain.Sort.by("id").descending()));
+        return transactions.findAll(spec, pageable).map(TransactionResponse::from);
+    }
 }
