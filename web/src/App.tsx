@@ -1,11 +1,10 @@
-import Home from './pages/Home/Home'
+import { Navigate, Route, Routes } from 'react-router-dom';
 
-function App() {
-    return(
-        <div>
-            //Código em construção
-        </div>
-    )
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<div className="p-8">Bootstrap OK</div>} />
+    </Routes>
+  );
 }
-
-export default App
