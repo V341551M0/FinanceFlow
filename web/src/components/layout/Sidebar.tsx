@@ -1,11 +1,16 @@
 import { NavLink } from 'react-router-dom';
 import { Upload } from 'lucide-react';
+import { CreditCard, Target, TrendingUp } from 'lucide-react';
 import {
   LayoutDashboard, Wallet, Receipt, Target,
   TrendingUp, PieChart, Settings, CreditCard,
 } from 'lucide-react';
 
+
 const items = [
+  { to: '/credit-cards', icon: CreditCard, label: 'Cartões' },
+  { to: '/budgets', icon: Target, label: 'Orçamentos' },
+  { to: '/goals', icon: TrendingUp, label: 'Metas' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/accounts', icon: Wallet, label: 'Contas' },
   { to: '/transactions', icon: Receipt, label: 'Transações' },
