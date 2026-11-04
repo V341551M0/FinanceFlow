@@ -1,12 +1,28 @@
-.env.example
-.github
-.vscode
+# ---- Java / Maven ----
 target/
+*.class
+*.jar.original
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# ---- Node / Vite ----
 node_modules/
 dist/
-build/
-coverage/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.iml
+
+# ---- Ambiente ----
 .env
-.env.example
-.env.*
-!.env.example
+.env.local
+.env.*.local
+
+# ---- SO ----
+.DS_Store
+Thumbs.db
