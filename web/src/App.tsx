@@ -9,6 +9,9 @@ import { useThemeStore } from '@/stores/themeStore';
 import AccountsPage from '@/pages/AccountsPage';
 import TransactionsPage from '@/pages/TransactionsPage';
 import ImportPage from '@/pages/ImportPage';
+import CreditCardsPage from '@/pages/CreditCardsPage';
+import BudgetsPage from '@/pages/BudgetsPage';
+import GoalsPage from '@/pages/GoalsPage';
 
 export default function App() {
   const apply = useThemeStore((s) => s.apply);
@@ -27,6 +30,9 @@ export default function App() {
             <Route path="/import" element={<ImportPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
+            <Route path="/credit-cards" element={<CreditCardsPage />} />
+            <Route path="/budgets" element={<BudgetsPage />} />
+            <Route path="/goals" element={<GoalsPage />} />
         </Route>
       </Route>
 
