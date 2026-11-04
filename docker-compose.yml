@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: financeflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-financeflow}
+      POSTGRES_USER: ${DB_USER:-financeflow}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-financeflow}
+    ports:
+      - "5432:5432"
+    volumes:
+      - financeflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-financeflow} -d ${POSTGRES_DB:-financeflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  financeflow_pgdata:
