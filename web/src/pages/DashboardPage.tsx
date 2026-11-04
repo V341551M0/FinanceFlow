@@ -4,6 +4,10 @@ import { dashboardApi, type PeriodPreset } from '@/api/dashboard';
 import { PeriodSelector } from '@/components/dashboard/PeriodSelector';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { formatDate } from '@/lib/format';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { EvolutionChart } from '@/components/dashboard/EvolutionChart';
+import { CashFlowChart } from '@/components/dashboard/CashFlowChart';
+import { CategoryPieChart } from '@/components/dashboard/CategoryPieChart';
 
 export default function DashboardPage() {
     const [preset, setPreset] = useState<PeriodPreset>('THIS_MONTH');
@@ -49,6 +53,23 @@ export default function DashboardPage() {
                 <>
                     <SummaryCards summary={data.summary} />
                     {/* Gráficos entram no próximo commit */}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <ChartCard title="Evolução do patrimônio" subtitle="Saldo acumulado no período">
+                            <EvolutionChart data={data.evolution} />
+                        </ChartCard>
+
+                        <ChartCard title="Fluxo de caixa" subtitle="Receitas e despesas por dia">
+                            <CashFlowChart data={data.evolution} />
+                        </ChartCard>
+
+                        <ChartCard title="Despesas por categoria" subtitle="Distribuição do período">
+                            <CategoryPieChart data={data.expenseByCategory} title="Despesas" />
+                        </ChartCard>
+
+                        <ChartCard title="Receitas por categoria" subtitle="Distribuição do período">
+                            <CategoryPieChart data={data.incomeByCategory} title="Receitas" />
+                        </ChartCard>
+                    </div>
                 </>
             )}
         </div>
