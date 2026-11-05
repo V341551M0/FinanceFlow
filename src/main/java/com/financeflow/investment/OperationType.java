@@ -1,4 +1,5 @@
 package com.financeflow.investment;
 
-public class OperationTuype {
+public enum OperationType {
+    BUY, SELL
 }
