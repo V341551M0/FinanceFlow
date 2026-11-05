@@ -37,14 +37,18 @@ class TransactionServiceTest {
     private FinancialAccount account;
     private final Long userId = 1L;
     private final Long accountId = 10L;
+    private final Long dstAccountId = 20L;
 
     @BeforeEach
     void setup() {
         user = User.builder().name("T").email("t@t.com").passwordHash("x").build();
+        user.setId(userId);
+
         account = FinancialAccount.builder()
-                .user(user).name("CC").institution("Itaú").type(AccountType.CHECKING)
+                .user(user).name("CC").institution("Itau").type(AccountType.CHECKING)
                 .currency("BRL").initialBalance(new BigDecimal("1000.00"))
                 .currentBalance(new BigDecimal("1000.00")).active(true).build();
+        account.setId(accountId);
     }
 
     @Test
@@ -52,13 +56,12 @@ class TransactionServiceTest {
         when(accounts.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(account));
         when(users.findById(userId)).thenReturn(Optional.of(user));
         when(transactions.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
-        // Simula Δ = -150 vindo do repositório após o save
         when(transactions.sumDeltaForAccount(accountId)).thenReturn(new BigDecimal("-150.00"));
         when(accounts.findById(accountId)).thenReturn(Optional.of(account));
 
         var req = new CreateTransactionRequest(
                 accountId, null, TransactionType.EXPENSE, TransactionDirection.DEBIT,
-                new BigDecimal("150.00"), LocalDate.now(), "Almoço", null);
+                new BigDecimal("150.00"), LocalDate.now(), "Almoco", null);
 
         var res = service.create(userId, req);
 
@@ -77,7 +80,7 @@ class TransactionServiceTest {
 
         var req = new CreateTransactionRequest(
                 accountId, null, TransactionType.INCOME, TransactionDirection.CREDIT,
-                new BigDecimal("500.00"), LocalDate.now(), "Salário", null);
+                new BigDecimal("500.00"), LocalDate.now(), "Salario", null);
 
         service.create(userId, req);
 
@@ -96,25 +99,25 @@ class TransactionServiceTest {
     @Test
     void transfer_createsTwoPairedTransactions() {
         var dst = FinancialAccount.builder()
-                .user(user).name("Poupança").institution("Itaú").type(AccountType.SAVINGS)
+                .user(user).name("Poupanca").institution("Itau").type(AccountType.SAVINGS)
                 .currency("BRL").initialBalance(BigDecimal.ZERO)
                 .currentBalance(BigDecimal.ZERO).active(true).build();
+        dst.setId(dstAccountId);
 
         when(accounts.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(account));
-        when(accounts.findByIdAndUserId(20L, userId)).thenReturn(Optional.of(dst));
+        when(accounts.findByIdAndUserId(dstAccountId, userId)).thenReturn(Optional.of(dst));
         when(users.findById(userId)).thenReturn(Optional.of(user));
         when(transactions.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
         when(transactions.sumDeltaForAccount(any())).thenReturn(BigDecimal.ZERO);
         when(accounts.findById(accountId)).thenReturn(Optional.of(account));
-        when(accounts.findById(20L)).thenReturn(Optional.of(dst));
+        when(accounts.findById(dstAccountId)).thenReturn(Optional.of(dst));
 
-        var req = new CreateTransferRequest(accountId, 20L,
-                new BigDecimal("100.00"), LocalDate.now(), "Transferência");
+        var req = new CreateTransferRequest(accountId, dstAccountId,
+                new BigDecimal("100.00"), LocalDate.now(), "Transferencia");
 
         service.createTransfer(userId, req);
 
         verify(transactions, times(2)).save(any(Transaction.class));
-        // Dois saves → um DEBIT, outro CREDIT, ambos do tipo TRANSFER
     }
 
     @Test
@@ -126,9 +129,6 @@ class TransactionServiceTest {
 
     @Test
     void transfer_doesNotAffectConsolidatedTotals() {
-        // Regra conceitual: TRANSFER não é INCOME nem EXPENSE — coberta pelo tipo
-        // Este teste documenta a intenção: soma de receitas+despesas exclui TRANSFER.
-        // (Verificação completa no módulo Dashboard, Fase 4.)
         assertTrue(true);
     }
 
@@ -139,6 +139,7 @@ class TransactionServiceTest {
                 .direction(TransactionDirection.DEBIT).amount(new BigDecimal("150.00"))
                 .transactionDate(LocalDate.now()).description("x")
                 .source(TransactionSource.MANUAL).status(TransactionStatus.POSTED).build();
+        tx.setId(1L);
 
         when(transactions.findByIdAndUserId(1L, userId)).thenReturn(Optional.of(tx));
         when(transactions.sumDeltaForAccount(accountId)).thenReturn(BigDecimal.ZERO);
