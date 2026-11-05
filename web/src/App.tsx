@@ -12,6 +12,8 @@ import ImportPage from '@/pages/ImportPage';
 import CreditCardsPage from '@/pages/CreditCardsPage';
 import BudgetsPage from '@/pages/BudgetsPage';
 import GoalsPage from '@/pages/GoalsPage';
+import InvestmentsPage from '@/pages/InvestmentsPage';
+import MarketPage from '@/pages/MarketPage';
 
 export default function App() {
   const apply = useThemeStore((s) => s.apply);
@@ -26,6 +28,8 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
+            <Route path="/market" element={<MarketPage />} />
+            <Route path="/investments" element={<InvestmentsPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />

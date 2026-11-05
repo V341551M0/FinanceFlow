@@ -79,3 +79,10 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+
+financeflow:
+  market:
+    brapi:
+      token: ${BRAPI_TOKEN:}
+    coingecko:
+      api-key: ${COINGECKO_API_KEY:}

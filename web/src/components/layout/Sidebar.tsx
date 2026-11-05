@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { Upload } from 'lucide-react';
+import { MarketPage } from '@/pages/MarketPage';
 import { CreditCard, Target, TrendingUp } from 'lucide-react';
+import { InvestmentsPage } from '@/pages/InvestmentsPage';
+import { BarChart3 } from 'lucide-react';
 import {
   LayoutDashboard, Wallet, Receipt, Target,
   TrendingUp, PieChart, Settings, CreditCard,
@@ -8,6 +11,8 @@ import {
 
 
 const items = [
+  { to: '/market', icon: BarChart3, label: 'Mercado' },
+  { to: '/investments', icon: TrendingUp, label: 'Investimentos' },
   { to: '/credit-cards', icon: CreditCard, label: 'Cartões' },
   { to: '/budgets', icon: Target, label: 'Orçamentos' },
   { to: '/goals', icon: TrendingUp, label: 'Metas' },
