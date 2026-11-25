@@ -41,4 +41,8 @@ public class FinancialAccount extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private com.financeflow.space.FinancialSpace space;
 }

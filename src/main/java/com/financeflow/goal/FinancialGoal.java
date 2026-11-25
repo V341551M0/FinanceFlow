@@ -33,4 +33,8 @@ public class FinancialGoal extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean completed = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private com.financeflow.space.FinancialSpace space;
 }

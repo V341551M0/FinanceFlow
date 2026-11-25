@@ -23,4 +23,8 @@ public class TransactionCategory extends BaseEntity {
 
     @Column(length = 7)  private String color;
     @Column(length = 40) private String icon;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private com.financeflow.space.FinancialSpace space;
 }
