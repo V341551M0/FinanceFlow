@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Upload, FileCheck, AlertTriangle, Check } from 'lucide-react';
+import { Upload, FileCheck, Check } from 'lucide-react';
 import { accountsApi } from '@/api/accounts';
 import { statementsApi, type PreviewResponse, type ImportResult } from '@/api/statements';
 import { formatCurrency } from '@/lib/format';
