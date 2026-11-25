@@ -3,7 +3,6 @@ target/
 *.class
 *.jar.original
 .mvn/wrapper/maven-wrapper.jar
-.mvn/wrapper/maven-wrapper.properties
 
 # ---- Node / Vite ----
 node_modules/

@@ -31,7 +31,7 @@ export function SummaryCards({ summary }: { summary: DashboardSummary }) {
             icon: PiggyBank,
             label: 'Resultado líquido',
             value: formatCurrency(summary.netResult),
-            color: summary.netResult.sign && summary.netResult.sign() < 0 ? 'text-negative' : 'text-positive',
+            color: summary.netResult < 0 ? 'text-negative' : 'text-positive',
             sub: `Taxa de poupança: ${summary.savingsRate.toFixed(1)}%`,
         },
     ];

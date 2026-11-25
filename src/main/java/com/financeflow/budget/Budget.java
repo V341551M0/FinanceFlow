@@ -27,4 +27,8 @@ public class Budget extends BaseEntity {
 
     @Column(name = "limit_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal limitAmount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private com.financeflow.space.FinancialSpace space;
 }

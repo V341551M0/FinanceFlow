@@ -4,15 +4,25 @@ import com.financeflow.account.FinancialAccount;
 import com.financeflow.account.FinancialAccountRepository;
 import com.financeflow.common.exception.BusinessException;
 import com.financeflow.common.exception.NotFoundException;
+import com.financeflow.ledger.DoubleEntryLedgerService;
+import com.financeflow.ledger.DoubleEntryLedgerService.PostEntryCommand;
+import com.financeflow.ledger.DoubleEntryLedgerService.PostingLine;
+import com.financeflow.ledger.JournalEntryStatus;
+import com.financeflow.ledger.LedgerAccount;
+import com.financeflow.ledger.LedgerAccountClass;
+import com.financeflow.ledger.PostingSide;
+import com.financeflow.ledger.RecordOrigin;
 import com.financeflow.transaction.dto.CreateTransactionRequest;
 import com.financeflow.transaction.dto.CreateTransferRequest;
 import com.financeflow.transaction.dto.TransactionResponse;
+import com.financeflow.user.User;
 import com.financeflow.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TransactionService {
@@ -21,15 +31,18 @@ public class TransactionService {
     private final FinancialAccountRepository accounts;
     private final TransactionCategoryRepository categories;
     private final UserRepository users;
+    private final DoubleEntryLedgerService ledger;
 
     public TransactionService(TransactionRepository transactions,
                               FinancialAccountRepository accounts,
                               TransactionCategoryRepository categories,
-                              UserRepository users) {
+                              UserRepository users,
+                              DoubleEntryLedgerService ledger) {
         this.transactions = transactions;
         this.accounts = accounts;
         this.categories = categories;
         this.users = users;
+        this.ledger = ledger;
     }
 
     @Transactional
@@ -51,6 +64,7 @@ public class TransactionService {
                 .notes(req.notes())
                 .build();
         transactions.save(tx);
+        recordTransactionInLedger(user, account, cat, tx);
         recalculateBalance(account.getId());
         return TransactionResponse.from(tx);
     }
@@ -85,6 +99,8 @@ public class TransactionService {
         debit.setTransferPairId(credit.getId());
         credit.setTransferPairId(debit.getId());
 
+        recordTransferInLedger(user, src, dst, debit, credit, req);
+
         recalculateBalance(src.getId());
         recalculateBalance(dst.getId());
     }
@@ -94,18 +110,116 @@ public class TransactionService {
         var tx = transactions.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new NotFoundException("Transação não encontrada"));
 
-        // Remove par de transferência, se existir
         if (tx.getTransferPairId() != null) {
+            Long minId = Math.min(tx.getId(), tx.getTransferPairId());
+            Long maxId = Math.max(tx.getId(), tx.getTransferPairId());
+            ledger.reverseByIdempotencyKeyIfPresent(
+                    userId,
+                    "TRANSFER:" + minId + ":" + maxId,
+                    "REV_TRANSFER:" + minId + ":" + maxId,
+                    "Estorno de transferência #" + minId
+            );
+
             transactions.findByIdAndUserId(tx.getTransferPairId(), userId)
                     .ifPresent(pair -> {
                         Long otherAccountId = pair.getAccount().getId();
                         transactions.delete(pair);
                         recalculateBalance(otherAccountId);
                     });
+        } else if (tx.getId() != null) {
+            ledger.reverseByIdempotencyKeyIfPresent(
+                    userId,
+                    "TX:" + tx.getId(),
+                    "REV_TX:" + tx.getId(),
+                    "Estorno de transação #" + tx.getId()
+            );
         }
+
         Long accountId = tx.getAccount().getId();
         transactions.delete(tx);
         recalculateBalance(accountId);
+    }
+
+    private void recordTransactionInLedger(User user, FinancialAccount account,
+                                           TransactionCategory category, Transaction tx) {
+        if (tx.getAmount() == null || tx.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        LedgerAccount assetAcc = ledger.ensureAccountForFinancialAccount(account);
+        if (assetAcc == null) {
+            return;
+        }
+
+        String currency = account.getCurrency() != null ? account.getCurrency() : "BRL";
+        boolean isCreditToAsset = tx.getDirection() == TransactionDirection.CREDIT;
+        LedgerAccountClass counterClass = isCreditToAsset ? LedgerAccountClass.REVENUE : LedgerAccountClass.EXPENSE;
+        String counterCode = category != null
+                ? counterClass.name() + ":CAT:" + category.getId() + ":" + currency
+                : counterClass.name() + ":GENERAL:" + currency;
+        String counterName = category != null
+                ? category.getName()
+                : (isCreditToAsset ? "Receitas Gerais (" + currency + ")" : "Despesas Gerais (" + currency + ")");
+
+        LedgerAccount counterAcc = ledger.ensureSystemAccount(user, counterCode, counterName, counterClass, currency);
+        if (counterAcc == null) {
+            return;
+        }
+
+        List<PostingLine> lines = isCreditToAsset
+                ? List.of(
+                        new PostingLine(assetAcc.getId(), PostingSide.DEBIT, tx.getAmount(), tx.getDescription()),
+                        new PostingLine(counterAcc.getId(), PostingSide.CREDIT, tx.getAmount(), tx.getDescription())
+                )
+                : List.of(
+                        new PostingLine(counterAcc.getId(), PostingSide.DEBIT, tx.getAmount(), tx.getDescription()),
+                        new PostingLine(assetAcc.getId(), PostingSide.CREDIT, tx.getAmount(), tx.getDescription())
+                );
+
+        String idempotencyKey = tx.getId() != null ? "TX:" + tx.getId() : "TX:" + UUID.randomUUID();
+        ledger.postEntry(new PostEntryCommand(
+                user,
+                idempotencyKey,
+                tx.getTransactionDate(),
+                tx.getTransactionDate(),
+                tx.getDescription(),
+                "TRANSACTION",
+                tx.getId(),
+                RecordOrigin.INTERNAL,
+                JournalEntryStatus.POSTED,
+                lines
+        ));
+    }
+
+    private void recordTransferInLedger(User user, FinancialAccount src, FinancialAccount dst,
+                                        Transaction debit, Transaction credit, CreateTransferRequest req) {
+        if (req.amount() == null || req.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        LedgerAccount srcLedger = ledger.ensureAccountForFinancialAccount(src);
+        LedgerAccount dstLedger = ledger.ensureAccountForFinancialAccount(dst);
+        if (srcLedger == null || dstLedger == null) {
+            return;
+        }
+
+        String idempotencyKey = (debit.getId() != null && credit.getId() != null)
+                ? "TRANSFER:" + Math.min(debit.getId(), credit.getId()) + ":" + Math.max(debit.getId(), credit.getId())
+                : "TRANSFER:" + UUID.randomUUID();
+
+        ledger.postEntry(new PostEntryCommand(
+                user,
+                idempotencyKey,
+                req.transactionDate(),
+                req.transactionDate(),
+                req.description(),
+                "TRANSFER",
+                debit.getId(),
+                RecordOrigin.INTERNAL,
+                JournalEntryStatus.POSTED,
+                List.of(
+                        new PostingLine(dstLedger.getId(), PostingSide.DEBIT, req.amount(), "Entrada transferência"),
+                        new PostingLine(srcLedger.getId(), PostingSide.CREDIT, req.amount(), "Saída transferência")
+                )
+        ));
     }
 
     @Transactional(readOnly = true)

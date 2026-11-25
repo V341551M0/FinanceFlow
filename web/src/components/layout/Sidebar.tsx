@@ -1,12 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { Upload } from 'lucide-react';
-import { MarketPage } from '@/pages/MarketPage';
-import { CreditCard, Target, TrendingUp } from 'lucide-react';
-import { InvestmentsPage } from '@/pages/InvestmentsPage';
 import { BarChart3 } from 'lucide-react';
 import {
   LayoutDashboard, Wallet, Receipt, Target,
-  TrendingUp, PieChart, Settings, CreditCard,
+  TrendingUp, PieChart, Settings, CreditCard, Bell,
 } from 'lucide-react';
 
 

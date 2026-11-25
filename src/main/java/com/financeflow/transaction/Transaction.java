@@ -55,4 +55,8 @@ public class Transaction extends BaseEntity {
     @Column(name = "external_id", length = 120) private String externalId;
 
     @Column(name = "transfer_pair_id") private Long transferPairId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private com.financeflow.space.FinancialSpace space;
 }
