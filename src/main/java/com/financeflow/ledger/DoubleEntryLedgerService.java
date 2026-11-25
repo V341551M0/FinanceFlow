@@ -5,6 +5,8 @@ import com.financeflow.account.FinancialAccount;
 import com.financeflow.common.exception.BusinessException;
 import com.financeflow.common.exception.NotFoundException;
 import com.financeflow.ledger.dto.AccountBalanceSnapshot;
+import com.financeflow.ledger.dto.LedgerAccountSummaryResponse;
+import com.financeflow.ledger.dto.LedgerEntryResponse;
 import com.financeflow.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -257,5 +259,41 @@ public class DoubleEntryLedgerService {
                 available.setScale(2, RoundingMode.HALF_EVEN),
                 projected.setScale(2, RoundingMode.HALF_EVEN)
         );
+    }
+
+    @Transactional
+    public void reverseByIdempotencyKeyIfPresent(Long userId, String originalIdempotencyKey,
+                                                 String reversalIdempotencyKey, String reason) {
+        journalEntries.findByUserIdAndIdempotencyKey(userId, originalIdempotencyKey)
+                .filter(entry -> entry.getStatus() == JournalEntryStatus.POSTED)
+                .ifPresent(entry -> reverseEntry(userId, entry.getId(), reversalIdempotencyKey, reason));
+    }
+
+    @Transactional(readOnly = true)
+    public List<LedgerAccountSummaryResponse> listAccountsWithBalances(Long userId) {
+        return ledgerAccounts.findByUserIdAndActiveTrueOrderByCodeAsc(userId).stream()
+                .map(acc -> {
+                    AccountBalanceSnapshot snap = getAccountBalance(userId, acc.getId());
+                    return new LedgerAccountSummaryResponse(
+                            acc.getId(),
+                            acc.getFinancialAccount() != null ? acc.getFinancialAccount().getId() : null,
+                            acc.getCode(),
+                            acc.getName(),
+                            acc.getAccountClass(),
+                            acc.getCurrency(),
+                            Boolean.TRUE.equals(acc.getActive()),
+                            snap.bookedBalance(),
+                            snap.availableBalance(),
+                            snap.projectedBalance()
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LedgerEntryResponse> listEntries(Long userId) {
+        return journalEntries.findTop100ByUserIdOrderByEntryDateDescIdDesc(userId).stream()
+                .map(LedgerEntryResponse::from)
+                .toList();
     }
 }
