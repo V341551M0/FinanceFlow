@@ -17,5 +17,34 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: financeflow-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-financeflow}
+      DB_USER: ${DB_USER:-financeflow}
+      DB_PASSWORD: ${DB_PASSWORD:-financeflow}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-override-with-a-256-bit-key-1234567890}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: financeflow-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
 volumes:
   financeflow_pgdata:
