@@ -5,6 +5,9 @@ import com.financeflow.account.FinancialAccount;
 import com.financeflow.account.FinancialAccountRepository;
 import com.financeflow.common.exception.BusinessException;
 import com.financeflow.common.exception.NotFoundException;
+import com.financeflow.ledger.DoubleEntryLedgerService;
+import com.financeflow.ledger.LedgerAccount;
+import com.financeflow.ledger.LedgerAccountClass;
 import com.financeflow.transaction.dto.CreateTransactionRequest;
 import com.financeflow.transaction.dto.CreateTransferRequest;
 import com.financeflow.user.User;
@@ -31,6 +34,7 @@ class TransactionServiceTest {
     @Mock FinancialAccountRepository accounts;
     @Mock TransactionCategoryRepository categories;
     @Mock UserRepository users;
+    @Mock DoubleEntryLedgerService ledger;
     @InjectMocks TransactionService service;
 
     private User user;
@@ -51,11 +55,25 @@ class TransactionServiceTest {
         account.setId(accountId);
     }
 
+    private void stubLedgerAccounts() {
+        var asset = LedgerAccount.builder().code("ASSET:10").accountClass(LedgerAccountClass.ASSET).build();
+        asset.setId(101L);
+        var counter = LedgerAccount.builder().code("COUNTER").accountClass(LedgerAccountClass.EXPENSE).build();
+        counter.setId(102L);
+        when(ledger.ensureAccountForFinancialAccount(any())).thenReturn(asset);
+        when(ledger.ensureSystemAccount(any(), any(), any(), any(), any())).thenReturn(counter);
+    }
+
     @Test
-    void create_expense_reduces_balance() {
+    void create_expense_reduces_balance_andPostsLedgerEntry() {
+        stubLedgerAccounts();
         when(accounts.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(account));
         when(users.findById(userId)).thenReturn(Optional.of(user));
-        when(transactions.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactions.save(any(Transaction.class))).thenAnswer(inv -> {
+            Transaction t = inv.getArgument(0);
+            t.setId(55L);
+            return t;
+        });
         when(transactions.sumDeltaForAccount(accountId)).thenReturn(new BigDecimal("-150.00"));
         when(accounts.findById(accountId)).thenReturn(Optional.of(account));
 
@@ -68,13 +86,19 @@ class TransactionServiceTest {
         assertEquals(TransactionType.EXPENSE, res.type());
         assertEquals(TransactionDirection.DEBIT, res.direction());
         assertEquals(0, new BigDecimal("850.00").compareTo(account.getCurrentBalance()));
+        verify(ledger).postEntry(any());
     }
 
     @Test
-    void create_income_increases_balance() {
+    void create_income_increases_balance_andPostsLedgerEntry() {
+        stubLedgerAccounts();
         when(accounts.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(account));
         when(users.findById(userId)).thenReturn(Optional.of(user));
-        when(transactions.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactions.save(any(Transaction.class))).thenAnswer(inv -> {
+            Transaction t = inv.getArgument(0);
+            t.setId(56L);
+            return t;
+        });
         when(transactions.sumDeltaForAccount(accountId)).thenReturn(new BigDecimal("500.00"));
         when(accounts.findById(accountId)).thenReturn(Optional.of(account));
 
@@ -85,6 +109,7 @@ class TransactionServiceTest {
         service.create(userId, req);
 
         assertEquals(0, new BigDecimal("1500.00").compareTo(account.getCurrentBalance()));
+        verify(ledger).postEntry(any());
     }
 
     @Test
@@ -97,13 +122,20 @@ class TransactionServiceTest {
     }
 
     @Test
-    void transfer_createsTwoPairedTransactions() {
+    void transfer_createsTwoPairedTransactions_andSingleBalancedLedgerEntry() {
         var dst = FinancialAccount.builder()
                 .user(user).name("Poupanca").institution("Itau").type(AccountType.SAVINGS)
                 .currency("BRL").initialBalance(BigDecimal.ZERO)
                 .currentBalance(BigDecimal.ZERO).active(true).build();
         dst.setId(dstAccountId);
 
+        var srcLedger = LedgerAccount.builder().code("ASSET:10").accountClass(LedgerAccountClass.ASSET).build();
+        srcLedger.setId(101L);
+        var dstLedger = LedgerAccount.builder().code("ASSET:20").accountClass(LedgerAccountClass.ASSET).build();
+        dstLedger.setId(102L);
+
+        when(ledger.ensureAccountForFinancialAccount(account)).thenReturn(srcLedger);
+        when(ledger.ensureAccountForFinancialAccount(dst)).thenReturn(dstLedger);
         when(accounts.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(account));
         when(accounts.findByIdAndUserId(dstAccountId, userId)).thenReturn(Optional.of(dst));
         when(users.findById(userId)).thenReturn(Optional.of(user));
@@ -118,6 +150,7 @@ class TransactionServiceTest {
         service.createTransfer(userId, req);
 
         verify(transactions, times(2)).save(any(Transaction.class));
+        verify(ledger).postEntry(any());
     }
 
     @Test
@@ -133,7 +166,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void delete_transaction_recalculatesBalance() {
+    void delete_transaction_reversesLedgerEntryAndRecalculatesBalance() {
         var tx = Transaction.builder()
                 .user(user).account(account).type(TransactionType.EXPENSE)
                 .direction(TransactionDirection.DEBIT).amount(new BigDecimal("150.00"))
@@ -147,6 +180,7 @@ class TransactionServiceTest {
 
         service.delete(userId, 1L);
 
+        verify(ledger).reverseByIdempotencyKeyIfPresent(eq(userId), eq("TX:1"), eq("REV_TX:1"), any());
         verify(transactions).delete(tx);
         assertEquals(0, new BigDecimal("1000.00").compareTo(account.getCurrentBalance()));
     }

@@ -2,6 +2,9 @@ package com.financeflow.account;
 
 import com.financeflow.account.dto.CreateAccountRequest;
 import com.financeflow.common.exception.NotFoundException;
+import com.financeflow.ledger.DoubleEntryLedgerService;
+import com.financeflow.ledger.LedgerAccount;
+import com.financeflow.ledger.LedgerAccountClass;
 import com.financeflow.user.User;
 import com.financeflow.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,7 @@ class AccountServiceTest {
 
     @Mock FinancialAccountRepository accounts;
     @Mock UserRepository users;
+    @Mock DoubleEntryLedgerService ledger;
     @InjectMocks AccountService service;
 
     private User user;
@@ -32,13 +36,26 @@ class AccountServiceTest {
         user = User.builder()
                 .name("Test").email("t@t.com").passwordHash("x")
                 .build();
+        user.setId(1L);
     }
 
     @Test
-    void create_sets_currentBalanceEqualToInitial() {
+    void create_sets_currentBalanceEqualToInitial_andPostsOpeningEntry() {
         when(users.findById(1L)).thenReturn(Optional.of(user));
-        when(accounts.save(any(FinancialAccount.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+        when(accounts.save(any(FinancialAccount.class))).thenAnswer(inv -> {
+            FinancialAccount a = inv.getArgument(0);
+            a.setId(10L);
+            return a;
+        });
+
+        var assetLedger = LedgerAccount.builder().code("ASSET:FIN_ACC:10").accountClass(LedgerAccountClass.ASSET).build();
+        assetLedger.setId(100L);
+        var equityLedger = LedgerAccount.builder().code("EQUITY:OPENING_BALANCE:BRL").accountClass(LedgerAccountClass.EQUITY).build();
+        equityLedger.setId(200L);
+
+        when(ledger.ensureAccountForFinancialAccount(any())).thenReturn(assetLedger);
+        when(ledger.ensureSystemAccount(any(), any(), any(), eq(LedgerAccountClass.EQUITY), eq("BRL")))
+                .thenReturn(equityLedger);
 
         var req = new CreateAccountRequest(
                 "Conta Corrente", "Itaú", AccountType.CHECKING,
@@ -51,6 +68,7 @@ class AccountServiceTest {
         assertEquals("Conta Corrente", res.name());
         assertEquals(AccountType.CHECKING, res.type());
         assertTrue(res.active());
+        verify(ledger).postEntry(any());
     }
 
     @Test
