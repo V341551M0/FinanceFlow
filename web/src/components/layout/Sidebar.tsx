@@ -11,6 +11,8 @@ import {
 
 
 const items = [
+  { to: '/notifications', icon: Bell, label: 'Notificações' },
+  { to: '/reports', icon: PieChart, label: 'Relatórios' },
   { to: '/market', icon: BarChart3, label: 'Mercado' },
   { to: '/investments', icon: TrendingUp, label: 'Investimentos' },
   { to: '/credit-cards', icon: CreditCard, label: 'Cartões' },

@@ -14,6 +14,9 @@ import BudgetsPage from '@/pages/BudgetsPage';
 import GoalsPage from '@/pages/GoalsPage';
 import InvestmentsPage from '@/pages/InvestmentsPage';
 import MarketPage from '@/pages/MarketPage';
+import ReportsPage from '@/pages/ReportsPage';
+import NotificationsPage from '@/pages/NotificationsPage';
+
 
 export default function App() {
   const apply = useThemeStore((s) => s.apply);
@@ -37,6 +40,8 @@ export default function App() {
             <Route path="/credit-cards" element={<CreditCardsPage />} />
             <Route path="/budgets" element={<BudgetsPage />} />
             <Route path="/goals" element={<GoalsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 
