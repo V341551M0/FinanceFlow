@@ -6,7 +6,6 @@ import com.financeflow.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -66,6 +65,4 @@ public class NotificationService {
                 Boolean.TRUE.equals(n.getRead()), n.getCreatedAt());
     }
 
-    public record NotificationResponse(Long id, NotificationType type, String title,
-                                       String message, Boolean read, Instant createdAt) {}
 }
