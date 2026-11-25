@@ -55,7 +55,7 @@ public class DoubleEntryLedgerService {
     public LedgerAccount ensureAccountForFinancialAccount(FinancialAccount account) {
         return ledgerAccounts.findByFinancialAccountId(account.getId())
                 .orElseGet(() -> {
-                    LedgerAccountClass clazz = account.getType() == AccountType.CREDIT
+                    LedgerAccountClass clazz = account.getType() != null && account.getType().name().contains("CREDIT")
                             ? LedgerAccountClass.LIABILITY
                             : LedgerAccountClass.ASSET;
                     String code = clazz.name() + ":FIN_ACC:" + account.getId();

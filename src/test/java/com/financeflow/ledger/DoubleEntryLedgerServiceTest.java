@@ -2,9 +2,7 @@ package com.financeflow.ledger;
 
 import com.financeflow.common.exception.BusinessException;
 import com.financeflow.ledger.DoubleEntryLedgerService.PostEntryCommand;
-import com.finance
-
-flow.ledger.DoubleEntryLedgerService.PostingLine;
+import com.financeflow.ledger.DoubleEntryLedgerService.PostingLine;
 import com.financeflow.ledger.dto.AccountBalanceSnapshot;
 import com.financeflow.user.User;
 import org.junit.jupiter.api.BeforeEach;
