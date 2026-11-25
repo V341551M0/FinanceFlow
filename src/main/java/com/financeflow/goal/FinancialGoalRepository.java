@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface FinancialGoalRepository extends JpaRepository<FinancialGoal, Long> {
     List<FinancialGoal> findAllByUserIdOrderByCompletedAscTargetDateAsc(Long userId);
     Optional<FinancialGoal> findByIdAndUserId(Long id, Long userId);
+    List<FinancialGoal> findAllByCompletedTrue();
 }
